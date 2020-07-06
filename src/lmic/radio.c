@@ -7,6 +7,7 @@
  *
  * Contributors:
  *    IBM Zurich Research Lab - initial API, implementation and documentation
+ *    Wireless And Networked Distributed Sensing (WANDS) Research Lab of NTU,SG - added CSMA
  *******************************************************************************/
 
 #include "lmic.h"
@@ -177,8 +178,6 @@
 #define RXLORA_RXMODE_RSSI_REG_MODEM_CONFIG2 0x74
 #endif
 
-
-
 // ----------------------------------------
 // Constants for radio registers
 #define OPMODE_LORA      0x80
@@ -191,6 +190,7 @@
 #define OPMODE_RX        0x05
 #define OPMODE_RX_SINGLE 0x06
 #define OPMODE_CAD       0x07
+
 
 // ----------------------------------------
 // Bits masking the corresponding IRQs from the radio
@@ -259,6 +259,8 @@ static u1_t randbuf[16];
 #error Missing CFG_sx1272_radio/CFG_sx1276_radio
 #endif
 
+// An array to maintain CH Occupancy
+int occupancy_metrix [8] = {0};
 
 static void writeReg (u1_t addr, u1_t data ) {
     hal_pin_nss(0);
@@ -394,8 +396,6 @@ static void configChannel () {
     writeReg(RegFrfLsb, (u1_t)(frf>> 0));
 }
 
-
-
 static void configPower () {
 #ifdef CFG_sx1276_radio
     // no boost used for now
@@ -466,7 +466,104 @@ static void txfsk () {
     opmode(OPMODE_TX);
 }
 
+// save code space if CSMA level is 0
+#if LMIC_CSMA_LEVEL > 0
+void configCAD () {
+    hal_disableIRQs();
+
+    // manually reset radio
+#ifdef CFG_sx1276_radio
+    hal_pin_rst(0); // drive RST pin low
+#else
+    hal_pin_rst(1); // drive RST pin high
+#endif
+    hal_waitUntil(os_getTime()+ms2osticks(1)); // wait >100us
+    hal_pin_rst(2); // configure RST pin as floating
+    hal_waitUntil(os_getTime()+ms2osticks(5)); // wait 5ms
+
+    // mask all IRQ bits except CAD completed & detected
+    writeReg(LORARegIrqFlagsMask, ~(IRQ_LORA_CDDONE_MASK | IRQ_LORA_CDDETD_MASK) );
+
+    // set radio to sleep mode
+    writeReg(RegOpMode, OPMODE_LORA | OPMODE_SLEEP);
+    //ASSERT((readReg(RegOpMode) & OPMODE_LORA) != 0);
+
+    // configure frequency
+    configChannel();
+
+    // set back to idle mode
+    writeReg(RegOpMode, OPMODE_LORA | OPMODE_STANDBY);
+    
+    // Configure SF
+    configLoraModem();
+}
+
+uint8_t cadlora (){ 
+
+    // chose a random DIFS duration interms of CADs.
+    // a clear DIFS window is mandatory to conclude a CH/SF is free.
+    uint8_t cadCountMax =  os_getRndU1() % 20;
+
+    configCAD ();
+    
+    // perform CAD cadCountMax number of times as per 
+    for (uint8_t cadCount=0; cadCount< cadCountMax; cadCount++) { 
+
+        // clear all radio IRQ flags
+        writeReg(LORARegIrqFlags, 0xFF);
+       
+        // set radio to CAD mode.
+        opmode(OPMODE_CAD);
+        u1_t flags = 0;
+        while ((flags & IRQ_LORA_CDDONE_MASK) == 0) {
+            flags = readReg(LORARegIrqFlags);
+        }        
+
+        // check if CAD engine sensed an on-going frame.
+        if (flags & IRQ_LORA_CDDETD_MASK) {
+            cadCount=0;
+        // randomly hop channel if CSMA level is 2
+        #if LMIC_CSMA_LEVEL == 2
+            LMIC.txChnl = os_getRndU1() & 0x03;// select at random from 8 mandatory CHs.                    
+            //LMIC.txChnl = os_getRndU1() & ( (sizeof(LMIC.channelFreq) / sizeof(LMIC.channelFreq[0]) ) - 1);      
+            LMIC.freq  = LMIC.channelFreq [LMIC.txChnl];
+            configChannel();
+        #endif
+
+        #if LMIC_CSMA_LEVEL == 3
+
+            occupancy_metrix[LMIC.txChnl]++;
+
+            int lowest_index_cnt = occupancy_metrix [LMIC.txChnl];
+            uint8_t CH = LMIC.txChnl;
+
+            //We assume that the user defines the mandatory 8 CHs.
+            for (uint8_t CH_index_Mtr=0; CH_index_Mtr < 8; CH_index_Mtr++) {
+
+                if (occupancy_metrix [CH_index_Mtr] < lowest_index_cnt) {                    
+                    CH = CH_index_Mtr;
+                }
+            }
+
+            LMIC.txChnl = CH;
+            LMIC.freq  = LMIC.channelFreq [LMIC.txChnl];
+            configChannel();
+
+        #endif
+        }
+    }
+    // reaching this point means CH/SF combination is free.
+    writeReg(LORARegIrqFlags, 0xFF);
+    hal_enableIRQs();// this is not strictly needed.
+    return 0;
+}
+#endif
+
 static void txlora () {
+// enable CSMA only if level is above 0
+#if LMIC_CSMA_LEVEL > 0
+    cadlora ();
+#endif
     // select LoRa modem (from sleep mode)
     //writeReg(RegOpMode, OPMODE_LORA);
     opmodeLora();
