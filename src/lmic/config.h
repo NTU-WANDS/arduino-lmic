@@ -27,6 +27,8 @@
 // cause crashing.
 #define LMIC_DEBUG_LEVEL 0
 
+
+
 // Enable this to allow using printf() to print to the given serial port
 // (or any other Print object). This can be easy for debugging. The
 // current implementation only works on AVR, though.
@@ -79,5 +81,18 @@
 // byte-oriented ones, making it use a lot less flash space (but it is
 // also about twice as slow as the original).
 #define USE_IDEETRON_AES
+
+
+
+// The following parameters configure, enable & disable channel sensing
+// for LoRaWAN.
+// Parameter LMIC_CSMA_LEVEL:
+// Possible values:
+//    0 - NO CSMA, LoRaWAN without CSMA
+//    1 - DCF-CSMA
+//    2 - CSMA with random channel switching
+//    3 - CSMA with channel profiling
+#define LMIC_CSMA_LEVEL 2
+
 
 #endif // _lmic_config_h_
