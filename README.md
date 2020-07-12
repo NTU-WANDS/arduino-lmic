@@ -62,8 +62,8 @@ defaults.
 
 Configuring CSMA
 ------------------
-CSMA type is controlled by setting the appropriate value {0,1,2,3} for the LMIC_CSMA_LEVEL variable in the `config.h` file. Below is a short discription of these values. Further instructions are provided at https://wands.sg/lmac/#instructions
-CSMA functionality is currently tested for the SX1276 tranceiver.
+CSMA type is controlled by setting the appropriate value {0,1,2,3} for the LMIC_CSMA_LEVEL variable in the `config.h` file. Below is a short discription of these values. CSMA functionality is currently tested for the SX1276 tranceiver.
+Further instructions are provided at https://wands.sg/lmac/#instructions
 
 LMIC_CSMA_LEVEL 0 : Disables CSMA and reverts to ALOHA. No extra codespace is used for unused CSMA functionality.
 
@@ -72,7 +72,6 @@ LMIC_CSMA_LEVEL 1 : Enables basic channel sensing. A node continues sensing the 
 LMIC_CSMA_LEVEL 2 : Enables random channel hoping. Under this setting, a node hops randomly to one of the 8 channels defined within the user space. If the newly hopped channel is ensured free, the frame is transmitted. Otherwise, a new random channel is selected until a free channel is ensured.
 
 LMIC_CSMA_LEVEL 3 : Enables channel profiling. Maintains a matrix of previous interactions and switches to the least bussiest channel once a busy channel is found. As usual, if the newly selected channel is ensured free, the frame is transmitted. Else, the next best channel is selected.
-
 
 Supported hardware
 ------------------
