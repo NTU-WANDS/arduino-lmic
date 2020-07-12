@@ -63,6 +63,7 @@ defaults.
 Configuring CSMA
 ------------------
 CSMA type is controlled by setting the appropriate value {0,1,2,3} for the LMIC_CSMA_LEVEL variable in the `config.h` file. Below is a short discription of these values. Further instructions are provided at https://wands.sg/lmac/#instructions
+CSMA functionality is currently tested for the SX1276 tranceiver.
 
 LMIC_CSMA_LEVEL 0 : Disables CSMA and reverts to ALOHA. No extra codespace is used for unused CSMA functionality.
 
