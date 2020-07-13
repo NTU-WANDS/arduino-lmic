@@ -67,11 +67,11 @@ Further instructions are provided at https://wands.sg/lmac/#instructions
 
 LMIC_CSMA_LEVEL 0 : Disables CSMA and reverts to ALOHA. No extra codespace is used for unused CSMA functionality.
 
-LMIC_CSMA_LEVEL 1 : Enables basic channel sensing. A node continues sensing the already set CH/SF until it becomes free. A free channel is ensured when a randomly selected number of CAD operations (from 1-20) report a free channel; a DIFS window. Once the the set CH/SF is ensured free, the frame is transmitted.
+LMIC_CSMA_LEVEL 1 : Enables basic channel sensing. A node continues sensing the CH/SF the radio is configured to. Once the the set CH/SF is ensured free ("free" within a DIFS window), the frame is transmitted. 
 
-LMIC_CSMA_LEVEL 2 : Enables random channel hoping. Under this setting, a node hops randomly to one of the 8 channels defined within the user space. If the newly hopped channel is ensured free, the frame is transmitted. Otherwise, a new random channel is selected until a free channel is ensured.
+LMIC_CSMA_LEVEL 2 : Enables random channel hoping. Under this setting, a node hops randomly to one of the 8 channels defined within the user space. If the newly hopped channel is sensed free, the frame is transmitted. Otherwise, a new random channel is selected until a free channel is ensured. 
 
-LMIC_CSMA_LEVEL 3 : Enables channel profiling. Maintains a matrix of previous interactions and switches to the least bussiest channel once a busy channel is found. As usual, if the newly selected channel is ensured free, the frame is transmitted. Else, the next best channel is selected.
+LMIC_CSMA_LEVEL 3 : Enables channel profiling. Maintains a matrix of previous interactions and switches to the least busy channel once the current CH/SF is busy. If the newly selected channel is ensured free, the frame is transmitted. Else, the next best channel is selected. 
 
 Supported hardware
 ------------------
